@@ -4,8 +4,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -112,20 +114,23 @@ public class Benchmark {
     Configuration conf = new Configuration();
     List<Class<? extends CompressionCodec>> codecList =
         codecFactory.getCodecClasses(conf);
+    Set<Class<? extends CompressionCodec>> codecSet = new HashSet<Class<? extends CompressionCodec>>();
+    codecSet.add(null); //no compression case
+    codecSet.addAll(codecList);
 
     EnumSet<KV_TRAIT> traitSet = EnumSet.of(KV_TRAIT.KV, KV_TRAIT.MULTI_KV);
     for (KV_TRAIT trait : traitSet) {
       boolean rle = false;
-      for (Class<? extends CompressionCodec> codec : codecList) {
+      for (Class<? extends CompressionCodec> codec : codecSet) {
         try {
-        String fileName = "result_" + trait + "_" + codec.getSimpleName() + "_no_rle.out";
-
+        String fileName = "result_" + trait + "_" + ((codec == null) ? "no_compression" : codec.getSimpleName()) + "_no_rle.out";
+        CompressionCodec compCodec = (codec == null) ? null : codecFactory.getCodecByClassName(codec.getName());
         Path file = new Path(".", fileName);
         WriterOptions writeOptions = new WriterOptions();
 
         conf.set("ifile.trait", trait.toString());
         writeOptions.setConf(conf).setFilePath(fs, file)
-          .setCodec(codecFactory.getCodecByClassName(codec.getName()))
+          .setCodec(compCodec)
           .setRLE(false);
         createIFile(writeOptions, trait);
         Result rs =
@@ -133,7 +138,7 @@ public class Benchmark {
         System.out.println(rs);
 
         // with RLE
-        fileName = "result_" + trait + "_" + codec.getSimpleName() + "_rle.out";
+        fileName = "result_" + trait + "_" + ((codec == null) ? "no_compression" : codec.getSimpleName()) + "_rle.out";
         writeOptions.setRLE(true);
         createIFile(writeOptions, trait);
         rs =
