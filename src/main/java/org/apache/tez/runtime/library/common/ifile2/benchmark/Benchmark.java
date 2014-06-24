@@ -3,7 +3,9 @@ package org.apache.tez.runtime.library.common.ifile2.benchmark;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -11,6 +13,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.tez.runtime.library.common.ifile2.IFile2;
 import org.apache.tez.runtime.library.common.ifile2.Writer;
@@ -107,71 +110,40 @@ public class Benchmark {
      * org.apache.hadoop.io.compress.Lz4Codec
      * org.apache.hadoop.io.compress.SnappyCodec
      */
+    Configuration conf = new Configuration();
+    List<Class<? extends CompressionCodec>> codecList =
+        codecFactory.getCodecClasses(conf);
 
-    // KV with compression
-    Path file = new Path(".", "result_legacyfile_default_compression.out");
-    WriterOptions writeOptions = new WriterOptions();
+    EnumSet<KV_TRAIT> traitSet = EnumSet.of(KV_TRAIT.KV, KV_TRAIT.MULTI_KV);
+    for (KV_TRAIT trait : traitSet) {
+      for (Class<? extends CompressionCodec> codec : codecList) {
+        try {
+        String fileName = "result_" + trait + "_" + codec + ".out";
 
-    writeOptions.setConf(conf).setFilePath(fs, file)
-      .setCodec(codecFactory.getCodecByName("Default")).setRLE(false);
-    createIFile(writeOptions, KV_TRAIT.KV);
-    Result rs =
-        new Result("LegacyIFile", writeOptions, fs.getFileStatus(file).getLen());
-    System.out.println(rs);
+        Path file = new Path(".", fileName);
+        WriterOptions writeOptions = new WriterOptions();
 
-    // KV with compression + RLE
-    file = new Path(".", "result_legacyfile_default_compression_with_rle.out");
-    writeOptions = new WriterOptions();
-    writeOptions.setConf(conf).setFilePath(fs, file)
-      .setCodec(codecFactory.getCodecByName("Default")).setRLE(true);
-    createIFile(writeOptions, KV_TRAIT.KV);
-    rs =
-        new Result("LegacyIFile with RLE ", writeOptions, fs
-          .getFileStatus(file).getLen());
-    System.out.println(rs);
+        writeOptions.setConf(conf).setFilePath(fs, file)
+          .setCodec(codecFactory.getCodecByClassName(codec.getName()))
+          .setRLE(false);
+        createIFile(writeOptions, trait);
+        Result rs =
+            new Result(fileName, writeOptions, fs.getFileStatus(file).getLen());
+        System.out.println(rs);
 
-    // KV without compression
-    file = new Path(".", "result_legacyfile_no_compress.out");
-    writeOptions = new WriterOptions();
-    writeOptions.setConf(conf).setFilePath(fs, file).setCodec(null)
-      .setRLE(false);
-    createIFile(writeOptions, KV_TRAIT.KV);
-    rs =
-        new Result("LegacyIFile no compression ", writeOptions, fs
-          .getFileStatus(file).getLen());
-    System.out.println(rs);
-
-    // KV without compression + RLE
-    file = new Path(".", "result_legacyfile_no_compress_with_rle.out");
-    writeOptions = new WriterOptions();
-    writeOptions.setConf(conf).setFilePath(fs, file).setCodec(null)
-      .setRLE(true);
-    createIFile(writeOptions, KV_TRAIT.KV);
-    rs =
-        new Result("LegacyIFile no compression with RLE", writeOptions, fs
-          .getFileStatus(file).getLen());
-    System.out.println(rs);
-
-    // Multi KV
-    file = new Path(".", "result_multi_KV_no_compress.out");
-    writeOptions = new WriterOptions();
-    writeOptions.setConf(conf).setFilePath(fs, file).setCodec(null)
-      .setRLE(true);
-    createIFile(writeOptions, KV_TRAIT.MULTI_KV);
-    rs =
-        new Result("MultiKV no compression", writeOptions, fs.getFileStatus(
-          file).getLen());
-    System.out.println(rs);
-
-    // Multi KV + compression
-    file = new Path(".", "result_multi_KV_compress.out");
-    writeOptions = new WriterOptions();
-    writeOptions.setConf(conf).setFilePath(fs, file).setCodec(null)
-      .setCodec(codecFactory.getCodecByName("Default"));
-    createIFile(writeOptions, KV_TRAIT.MULTI_KV);
-    rs = new Result("MultiKV", writeOptions, fs.getFileStatus(file).getLen());
-    System.out.println(rs);
-
+        // with RLE
+        fileName = "result_" + trait + "_" + codec + "_rle.out";
+        writeOptions.setRLE(true);
+        createIFile(writeOptions, trait);
+        rs =
+            new Result(fileName, writeOptions, fs.getFileStatus(file).getLen());
+        System.out.println(rs);
+        } catch(Throwable t) {
+          t.printStackTrace();
+          //proceed to the next benchmark.  Quite possible that codec jars aren't available
+        }
+      }
+    }
   }
 
   public static void main(String[] args) throws IOException {

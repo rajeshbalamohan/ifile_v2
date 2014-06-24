@@ -46,7 +46,8 @@ public class IFile2 {
   public static final DataInputBuffer REPEAT_KEY = new DataInputBuffer();
 
   public static enum KV_TRAIT {
-    KV("KV", 1), MULTI_KV("MULTI_KV", 2);
+    KV("KV", 1), MULTI_KV("MULTI_KV", 2), FIXED_LENGTH_MULTI_KV(
+        "FIXED_LENGTH_MULTI_KV", 3);
 
     private final String traitName;
     private final int traitNum;
@@ -62,6 +63,16 @@ public class IFile2 {
           return trait;
       throw new IllegalArgumentException();
     }
+  }
+
+  public static Writer createWriter(Configuration conf, FileSystem fs,
+      Path file, Class keyClass, Class valueClass, CompressionCodec codec,
+      TezCounter writesCounter, TezCounter serializedBytesCounter)
+      throws IOException {
+    WriterOptions options = new WriterOptions();
+    options.setConf(conf).setCodec(codec).setFilePath(fs, file)
+      .setCounters(writesCounter, serializedBytesCounter);
+    return createWriter(options);
   }
 
   public static Writer createWriter(WriterOptions writerOptions)
@@ -84,6 +95,17 @@ public class IFile2 {
     default:
       throw new IllegalArgumentException("Illegal arguement");
     }
+  }
+
+  public static Reader createReader(InputStream in, long length,
+      CompressionCodec codec, TezCounter readsCounter,
+      TezCounter bytesReadCounter, boolean readAhead, int readAheadLength,
+      int bufferSize) throws IOException {
+    ReaderOptions options = new ReaderOptions();
+    options.setBufferSize(bufferSize).setReadAhead(readAhead, readAheadLength)
+      .setCounters(readsCounter, bytesReadCounter).setCodec(codec)
+      .setLength(length).setInputStream(in);
+    return createReader(options);
   }
 
   public static Reader createReader(ReaderOptions readerOptions)
@@ -126,15 +148,17 @@ public class IFile2 {
    * 
    */
   public static class WriterOptions {
-    private Configuration conf;
-    private FileSystem fs;
-    private Path filePath;
-    private Class keyClass;
-    private Class valueClass;
-    private CompressionCodec codec;
-    private TezCounter writesCounter;
-    private TezCounter serializedBytesCounter;
-    private boolean rle;
+    Configuration conf;
+    FileSystem fs;
+    Path filePath;
+    Class keyClass;
+    Class valueClass;
+    CompressionCodec codec;
+    TezCounter writesCounter;
+    TezCounter serializedBytesCounter;
+    boolean rle;
+    int fixedKeyLength;
+    int fixedValueLength;
 
     public WriterOptions setConf(Configuration conf) {
       this.conf = conf;
@@ -174,6 +198,13 @@ public class IFile2 {
     public boolean validate() {
       // TODO: do some basic validations here
       return true;
+    }
+
+    public WriterOptions
+        setFixedLength(int fixedKeyLength, int fixedValueLength) {
+      this.fixedKeyLength = fixedKeyLength;
+      this.fixedValueLength = fixedValueLength;
+      return this;
     }
 
     public String toString() {
