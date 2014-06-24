@@ -57,7 +57,6 @@ public class Benchmark {
    */
   private void createIFile(WriterOptions options, KV_TRAIT trait)
       throws IOException {
-    conf.set("ifile.trait", trait.toString());
     Writer writer = IFile2.createWriter(options);
     FSDataInputStream in = fs.open(inputCSVFile);
     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -92,7 +91,7 @@ public class Benchmark {
     }
 
     public String toString() {
-      return info + " " + option.toString() + " " + size;
+      return info + "=" + size;
     }
   }
 
@@ -116,13 +115,15 @@ public class Benchmark {
 
     EnumSet<KV_TRAIT> traitSet = EnumSet.of(KV_TRAIT.KV, KV_TRAIT.MULTI_KV);
     for (KV_TRAIT trait : traitSet) {
+      boolean rle = false;
       for (Class<? extends CompressionCodec> codec : codecList) {
         try {
-        String fileName = "result_" + trait + "_" + codec + ".out";
+        String fileName = "result_" + trait + "_" + codec.getSimpleName() + "_no_rle.out";
 
         Path file = new Path(".", fileName);
         WriterOptions writeOptions = new WriterOptions();
 
+        conf.set("ifile.trait", trait.toString());
         writeOptions.setConf(conf).setFilePath(fs, file)
           .setCodec(codecFactory.getCodecByClassName(codec.getName()))
           .setRLE(false);
@@ -132,7 +133,7 @@ public class Benchmark {
         System.out.println(rs);
 
         // with RLE
-        fileName = "result_" + trait + "_" + codec + "_rle.out";
+        fileName = "result_" + trait + "_" + codec.getSimpleName() + "_rle.out";
         writeOptions.setRLE(true);
         createIFile(writeOptions, trait);
         rs =

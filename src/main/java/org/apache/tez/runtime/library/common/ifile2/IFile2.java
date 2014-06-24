@@ -89,8 +89,10 @@ public class IFile2 {
     switch (traits) {
     // TODO: Additional custom impls possible
     case KV:
+      LOG.info("Creating LegacyIFile writer");
       return new LegacyIFile.KVWriter(writerOptions);
     case MULTI_KV:
+      LOG.info("Creating MultiKeyValueIFile writer");
       return new MultiKeyValueIFile.KVWriter(writerOptions);
     default:
       throw new IllegalArgumentException("Illegal arguement");
@@ -117,8 +119,10 @@ public class IFile2 {
     switch (trait) {
     // TODO: Additional custom impls possible
     case KV:
+      LOG.info("Creating LegacyIFile reader");
       return new LegacyIFile.KVReader(readerOptions);
     case MULTI_KV:
+      LOG.info("Creating MultiKeyValueIFile reader");
       return new MultiKeyValueIFile.KVReader(readerOptions);
     default:
       throw new IllegalArgumentException("Illegal arguement");
