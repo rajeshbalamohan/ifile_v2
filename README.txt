@@ -12,4 +12,10 @@ This bug tracks the building of a prototype IFile format which is optimized for 
 
 To run:
 ======
+
 mvn clean package -DskipTests=true exec:java -Dexec.mainClass="org.apache.tez.runtime.library.common.ifile2.benchmark.Benchmark" -Dexec.args="file:////Users/...directory location.../store_sales_60_l.csv"
+
+In case you need to run for all codecs, it would be easier to run via hadoop command with tez classpaths in HADOOP_CLASSPATH
+
+HADOOP_CLASSPATH=./target/*:$TEZ_HOME/*:$TEZ_HOME/lib/*:$HADOOP_CLASSPATH hadoop jar ./target/ifile_v2-0.0.1-SNAPSHOT.jar org.apache.tez.runtime.library.common.ifile2.benchmark.Benchmark file:////grid/..../ifile_v2/store_sales_60_l.csv
+
