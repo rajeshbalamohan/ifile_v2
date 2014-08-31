@@ -1,4 +1,4 @@
-Purpose:
+Purpose: 
 =======
 To compare KV, MultiKV ifile formats with different options like with/without compression, with/without RLE etc.
 
